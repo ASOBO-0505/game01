@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>クロノスフィア</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            font-family: 'Arial', sans-serif;
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        .game-board {
+            width: 600px;
+            height: 400px;
+            margin: 20px auto;
+            border: 3px solid #4ecdc4;
+            border-radius: 15px;
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(78, 205, 196, 0.3);
+        }
+        
+        .sphere {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+        
+        .sphere.player {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            border: 2px solid #fff;
+        }
+        
+        .sphere.time-crystal {
+            background: linear-gradient(45deg, #4ecdc4, #96e6d3);
+            animation: pulse 2s infinite;
+        }
+        
+        .sphere.enemy {
+            background: linear-gradient(45deg, #666, #999);
+        }
+        
+        .sphere.portal {
+            background: linear-gradient(45deg, #9b59b6, #e74c3c);
+            animation: rotate 3s linear infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(78, 205, 196, 0.5); }
+            50% { transform: scale(1.1); box-shadow: 0 0 25px rgba(78, 205, 196, 0.8); }
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .trail {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 107, 107, 0.6);
+            pointer-events: none;
+            animation: fadeOut 1s ease-out forwards;
+        }
+        
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0); }
+        }
+        
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .info-panel {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .message {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(78, 205, 196, 0.2);
+            border-left: 4px solid #4ecdc4;
+            min-height: 20px;
+        }
+        
+        .rules {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 30px 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .rules h3 {
+            color: #4ecdc4;
+            margin-top: 0;
+        }
+        
+        .rules ul {
+            padding-left: 20px;
+        }
+        
+        .rules li {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>⏰ クロノスフィア ⏰</h1>
+        <p>時空を操り、全ての時間クリスタルを集めよう！</p>
+        
+        <div class="game-board" id="gameBoard"></div>
+        
+        <div class="control-panel">
+            <button onclick="movePlayer('up')">↑</button>
+            <button onclick="movePlayer('down')">↓</button>
+            <button onclick="movePlayer('left')">←</button>
+            <button onclick="movePlayer('right')">→</button>
+            <button onclick="rewindTime()" id="rewindBtn">⏪ 時間巻き戻し</button>
+            <button onclick="freezeTime()" id="freezeBtn">⏸️ 時間停止</button>
+            <button onclick="resetGame()">🔄 リセット</button>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-item">
+                <strong>時間クリスタル: <span id="crystals">0/5</span></strong>
+            </div>
+            <div class="info-item">
+                <strong>時間巻き戻し: <span id="rewinds">3</span>回</strong>
+            </div>
+            <div class="info-item">
+                <strong>時間停止: <span id="freezes">2</span>回</strong>
+            </div>
+            <div class="info-item">
+                <strong>レベル: <span id="level">1</span></strong>
+            </div>
+        </div>
+        
+        <div class="message" id="message">
+            スタート！時間クリスタル（青い光る球）を全て集めよう
+        </div>
+        
+        <div class="rules">
+            <h3>🎮 ゲームルール</h3>
+            <ul>
+                <li><strong>目標：</strong> 敵に触れずに全ての時間クリスタル（青い光る球）を集める</li>
+                <li><strong>操作：</strong> 矢印ボタンで赤いプレイヤー球を移動</li>
+                <li><strong>時間巻き戻し：</strong> 3秒前の状態に戻る（3回まで使用可能）</li>
+                <li><strong>時間停止：</strong> 敵の動きを5秒間止める（2回まで使用可能）</li>
+                <li><strong>敵：</strong> グレーの球は自動で動き回る。触れるとゲームオーバー</li>
+                <li><strong>ポータル：</strong> 紫の回転する球に触れると瞬間移動</li>
+                <li><strong>レベルアップ：</strong> 全クリスタル収集で次のレベルへ</li>
+                <li><strong>特徴：</strong> レベルが上がると敵が増え、マップが複雑になる</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            player: { x: 50, y: 50 },
+            enemies: [],
+            crystals: [],
+            portals: [],
+            collectedCrystals: 0,
+            totalCrystals: 5,
+            rewinds: 3,
+            freezes: 2,
+            level: 1,
+            frozen: false,
+            gameHistory: [],
+            trails: []
+        };
+
+        function initGame() {
+            const board = document.getElementById('gameBoard');
+            board.innerHTML = '';
+            
+            // レベルに応じて敵とオブジェクトを配置
+            gameState.enemies = [];
+            gameState.crystals = [];
+            gameState.portals = [];
+            
+            // 時間クリスタルの配置
+            for (let i = 0; i < gameState.totalCrystals; i++) {
+                gameState.crystals.push({
+                    x: Math.random() * 540 + 20,
+                    y: Math.random() * 340 + 20,
+                    id: i
+                });
+            }
+            
+            // 敵の配置（レベルに応じて増加）
+            const enemyCount = Math.min(gameState.level + 1, 6);
+            for (let i = 0; i < enemyCount; i++) {
+                gameState.enemies.push({
+                    x: Math.random() * 540 + 20,
+                    y: Math.random() * 340 + 20,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    id: i
+                });
+            }
+            
+            // ポータルの配置
+            if (gameState.level >= 2) {
+                gameState.portals.push(
+                    { x: 100, y: 300, id: 0, pair: 1 },
+                    { x: 480, y: 80, id: 1, pair: 0 }
+                );
+            }
+            
+            renderGame();
+            updateUI();
+        }
+
+        function renderGame() {
+            const board = document.getElementById('gameBoard');
+            
+            // 既存の要素をクリア（トレイル以外）
+            const trails = board.querySelectorAll('.trail');
+            board.innerHTML = '';
+            trails.forEach(trail => board.appendChild(trail));
+            
+            // プレイヤーを描画
+            const playerEl = document.createElement('div');
+            playerEl.className = 'sphere player';
+            playerEl.style.left = gameState.player.x + 'px';
+            playerEl.style.top = gameState.player.y + 'px';
+            board.appendChild(playerEl);
+            
+            // 時間クリスタルを描画
+            gameState.crystals.forEach(crystal => {
+                const crystalEl = document.createElement('div');
+                crystalEl.className = 'sphere time-crystal';
+                crystalEl.style.left = crystal.x + 'px';
+                crystalEl.style.top = crystal.y + 'px';
+                crystalEl.onclick = () => collectCrystal(crystal.id);
+                board.appendChild(crystalEl);
+            });
+            
+            // 敵を描画
+            gameState.enemies.forEach(enemy => {
+                const enemyEl = document.createElement('div');
+                enemyEl.className = 'sphere enemy';
+                enemyEl.style.left = enemy.x + 'px';
+                enemyEl.style.top = enemy.y + 'px';
+                board.appendChild(enemyEl);
+            });
+            
+            // ポータルを描画
+            gameState.portals.forEach(portal => {
+                const portalEl = document.createElement('div');
+                portalEl.className = 'sphere portal';
+                portalEl.style.left = portal.x + 'px';
+                portalEl.style.top = portal.y + 'px';
+                board.appendChild(portalEl);
+            });
+        }
+
+        function movePlayer(direction) {
+            const speed = 25;
+            const oldPos = { ...gameState.player };
+            
+            switch (direction) {
+                case 'up': gameState.player.y = Math.max(0, gameState.player.y - speed); break;
+                case 'down': gameState.player.y = Math.min(360, gameState.player.y + speed); break;
+                case 'left': gameState.player.x = Math.max(0, gameState.player.x - speed); break;
+                case 'right': gameState.player.x = Math.min(560, gameState.player.x + speed); break;
+            }
+            
+            // トレイルエフェクト
+            createTrail(oldPos.x + 20, oldPos.y + 20);
+            
+            // 衝突判定
+            checkCollisions();
+            
+            // ゲーム状態を履歴に保存
+            saveGameState();
+            
+            renderGame();
+        }
+
+        function createTrail(x, y) {
+            const board = document.getElementById('gameBoard');
+            const trail = document.createElement('div');
+            trail.className = 'trail';
+            trail.style.left = x + 'px';
+            trail.style.top = y + 'px';
+            board.appendChild(trail);
+            
+            setTimeout(() => {
+                if (trail.parentNode) {
+                    trail.parentNode.removeChild(trail);
+                }
+            }, 1000);
+        }
+
+        function checkCollisions() {
+            // 時間クリスタルとの衝突
+            gameState.crystals.forEach((crystal, index) => {
+                const dx = gameState.player.x - crystal.x;
+                const dy = gameState.player.y - crystal.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 30) {
+                    collectCrystal(crystal.id);
+                }
+            });
+            
+            // 敵との衝突
+            gameState.enemies.forEach(enemy => {
+                const dx = gameState.player.x - enemy.x;
+                const dy = gameState.player.y - enemy.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 35) {
+                    gameOver();
+                }
+            });
+            
+            // ポータルとの衝突
+            gameState.portals.forEach(portal => {
+                const dx = gameState.player.x - portal.x;
+                const dy = gameState.player.y - portal.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 35) {
+                    const targetPortal = gameState.portals[portal.pair];
+                    gameState.player.x = targetPortal.x;
+                    gameState.player.y = targetPortal.y;
+                    showMessage('ポータルで瞬間移動！');
+                }
+            });
+        }
+
+        function collectCrystal(crystalId) {
+            gameState.crystals = gameState.crystals.filter(c => c.id !== crystalId);
+            gameState.collectedCrystals++;
+            
+            if (gameState.collectedCrystals >= gameState.totalCrystals) {
+                levelUp();
+            } else {
+                showMessage(`時間クリスタル獲得！ 残り${gameState.totalCrystals - gameState.collectedCrystals}個`);
+            }
+            
+            updateUI();
+        }
+
+        function levelUp() {
+            gameState.level++;
+            gameState.collectedCrystals = 0;
+            gameState.rewinds = Math.min(gameState.rewinds + 1, 5);
+            gameState.freezes = Math.min(gameState.freezes + 1, 3);
+            
+            showMessage(`レベル${gameState.level}クリア！ 次のレベルへ...`);
+            
+            setTimeout(() => {
+                initGame();
+            }, 2000);
+        }
+
+        function rewindTime() {
+            if (gameState.rewinds > 0 && gameState.gameHistory.length > 0) {
+                gameState.rewinds--;
+                
+                // 3秒前の状態を復元（約10フレーム前）
+                const targetIndex = Math.max(0, gameState.gameHistory.length - 10);
+                const pastState = gameState.gameHistory[targetIndex];
+                
+                gameState.player = { ...pastState.player };
+                gameState.enemies = pastState.enemies.map(e => ({ ...e }));
+                
+                // 履歴も巻き戻し
+                gameState.gameHistory = gameState.gameHistory.slice(0, targetIndex);
+                
+                showMessage('時間を巻き戻しました！');
+                updateUI();
+                renderGame();
+            }
+        }
+
+        function freezeTime() {
+            if (gameState.freezes > 0 && !gameState.frozen) {
+                gameState.freezes--;
+                gameState.frozen = true;
+                
+                document.getElementById('freezeBtn').disabled = true;
+                showMessage('時間停止発動！敵が5秒間止まります');
+                
+                setTimeout(() => {
+                    gameState.frozen = false;
+                    document.getElementById('freezeBtn').disabled = false;
+                    showMessage('時間停止終了');
+                }, 5000);
+                
+                updateUI();
+            }
+        }
+
+        function saveGameState() {
+            gameState.gameHistory.push({
+                player: { ...gameState.player },
+                enemies: gameState.enemies.map(e => ({ ...e }))
+            });
+            
+            // 履歴が長くなりすぎないよう制限
+            if (gameState.gameHistory.length > 50) {
+                gameState.gameHistory.shift();
+            }
+        }
+
+        function updateEnemies() {
+            if (!gameState.frozen) {
+                gameState.enemies.forEach(enemy => {
+                    enemy.x += enemy.vx;
+                    enemy.y += enemy.vy;
+                    
+                    // 壁での反射
+                    if (enemy.x <= 0 || enemy.x >= 560) {
+                        enemy.vx *= -1;
+                        enemy.x = Math.max(0, Math.min(560, enemy.x));
+                    }
+                    if (enemy.y <= 0 || enemy.y >= 360) {
+                        enemy.vy *= -1;
+                        enemy.y = Math.max(0, Math.min(360, enemy.y));
+                    }
+                });
+            }
+        }
+
+        function gameOver() {
+            showMessage('ゲームオーバー！敵に触れてしまいました...');
+            setTimeout(() => {
+                resetGame();
+            }, 2000);
+        }
+
+        function resetGame() {
+            gameState = {
+                player: { x: 50, y: 50 },
+                enemies: [],
+                crystals: [],
+                portals: [],
+                collectedCrystals: 0,
+                totalCrystals: 5,
+                rewinds: 3,
+                freezes: 2,
+                level: 1,
+                frozen: false,
+                gameHistory: [],
+                trails: []
+            };
+            
+            document.getElementById('freezeBtn').disabled = false;
+            initGame();
+            showMessage('ゲームリセット！新しい冒険の始まりです');
+        }
+
+        function showMessage(text) {
+            document.getElementById('message').textContent = text;
+        }
+
+        function updateUI() {
+            document.getElementById('crystals').textContent = `${gameState.collectedCrystals}/${gameState.totalCrystals}`;
+            document.getElementById('rewinds').textContent = gameState.rewinds;
+            document.getElementById('freezes').textContent = gameState.freezes;
+            document.getElementById('level').textContent = gameState.level;
+            
+            document.getElementById('rewindBtn').disabled = gameState.rewinds === 0;
+            document.getElementById('freezeBtn').disabled = gameState.freezes === 0 || gameState.frozen;
+        }
+
+        // ゲームループ
+        setInterval(() => {
+            updateEnemies();
+            checkCollisions();
+            renderGame();
+        }, 100);
+
+        // キーボード操作
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp': e.preventDefault(); movePlayer('up'); break;
+                case 'ArrowDown': e.preventDefault(); movePlayer('down'); break;
+                case 'ArrowLeft': e.preventDefault(); movePlayer('left'); break;
+                case 'ArrowRight': e.preventDefault(); movePlayer('right'); break;
+                case 'r': case 'R': if (gameState.rewinds > 0) rewindTime(); break;
+                case 'f': case 'F': if (gameState.freezes > 0) freezeTime(); break;
+            }
+        });
+
+        // ゲーム開始
+        initGame();
+    </script>
+</body>
+</html>
