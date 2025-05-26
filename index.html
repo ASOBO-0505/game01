@@ -81,9 +81,92 @@
             50% { transform: scale(1.1); box-shadow: 0 0 25px rgba(78, 205, 196, 0.8); }
         }
         
-        @keyframes rotate {
+        .sphere.boss {
+            background: linear-gradient(45deg, #e74c3c, #c0392b, #8e44ad);
+            animation: bossGlow 1.5s ease-in-out infinite alternate;
+            border: 3px solid #f39c12;
+            width: clamp(50px, 10vw, 60px) !important;
+            height: clamp(50px, 10vw, 60px) !important;
+        }
+        
+        .sphere.boss-projectile {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            animation: projectileSpin 0.5s linear infinite;
+            width: clamp(15px, 3vw, 20px) !important;
+            height: clamp(15px, 3vw, 20px) !important;
+        }
+        
+        @keyframes bossGlow {
+            0% { 
+                box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+                transform: scale(1);
+            }
+            100% { 
+                box-shadow: 0 0 40px rgba(231, 76, 60, 1);
+                transform: scale(1.05);
+            }
+        }
+        
+        @keyframes projectileSpin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+        }
+        
+        .speed-slider {
+            width: 120px;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #4ecdc4, #45b7d1, #667eea);
+            outline: none;
+            cursor: pointer;
+        }
+        
+        .speed-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            border: 2px solid white;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .boss-health {
+            width: 200px;
+            height: 20px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #e74c3c;
+            border-radius: 10px;
+            margin: 10px auto;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .boss-health-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+            transition: width 0.3s ease;
+            border-radius: 8px;
+        }
+        
+        .boss-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
         }
         
         .trail {
@@ -274,6 +357,20 @@
                     <button ontouchstart="event.preventDefault();" onclick="freezeTime()" id="freezeBtn">⏸️ 停止</button>
                     <button ontouchstart="event.preventDefault();" onclick="resetGame()">🔄 リセット</button>
                 </div>
+                
+                <div class="speed-control">
+                    <span>🐌</span>
+                    <input type="range" class="speed-slider" id="speedSlider" min="0.5" max="3" step="0.5" value="1">
+                    <span>🏃‍♂️</span>
+                    <span id="speedDisplay">x1.0</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="bossHealthContainer" style="display: none;">
+            <div class="boss-health">
+                <div class="boss-health-bar" id="bossHealthBar"></div>
+                <div class="boss-label">クロノス・マスター</div>
             </div>
         </div>
         
@@ -300,13 +397,16 @@
             <h3>🎮 ゲームルール</h3>
             <ul>
                 <li><strong>目標：</strong> 敵に触れずに全ての時間クリスタル（青い光る球）を集める</li>
-                <li><strong>操作：</strong> 矢印ボタンで赤いプレイヤー球を移動</li>
+                <li><strong>操作：</strong> 矢印ボタンまたはスワイプで赤いプレイヤー球を移動</li>
                 <li><strong>時間巻き戻し：</strong> 3秒前の状態に戻る（3回まで使用可能）</li>
                 <li><strong>時間停止：</strong> 敵の動きを5秒間止める（2回まで使用可能）</li>
-                <li><strong>敵：</strong> グレーの球は自動で動き回る。触れるとゲームオーバー</li>
+                <li><strong>速度調整：</strong> スライダーでゲーム速度を変更可能（0.5x〜3.0x）</li>
+                <li><strong>通常敵：</strong> グレーの球は自動で動き回る。触れるとゲームオーバー</li>
+                <li><strong>ボス戦：</strong> レベル5、10、15...でクロノス・マスターが出現！</li>
+                <li><strong>ボス攻撃：</strong> プレイヤーを狙って弾を発射。弾に触れるとゲームオーバー</li>
+                <li><strong>ボス撃破：</strong> 時間クリスタルを集めてボスにダメージを与える</li>
                 <li><strong>ポータル：</strong> 紫の回転する球に触れると瞬間移動</li>
-                <li><strong>レベルアップ：</strong> 全クリスタル収集で次のレベルへ</li>
-                <li><strong>特徴：</strong> レベルが上がると敵が増え、マップが複雑になる</li>
+                <li><strong>レベルアップ：</strong> 全クリスタル収集またはボス撃破で次のレベルへ</li>
             </ul>
         </div>
     </div>
@@ -317,6 +417,8 @@
             enemies: [],
             crystals: [],
             portals: [],
+            boss: null,
+            bossProjectiles: [],
             collectedCrystals: 0,
             totalCrystals: 5,
             rewinds: 3,
@@ -324,7 +426,11 @@
             level: 1,
             frozen: false,
             gameHistory: [],
-            trails: []
+            trails: [],
+            gameSpeed: 1.0,
+            bossLevel: false,
+            bossHealth: 100,
+            maxBossHealth: 100
         };
 
         function initGame() {
@@ -336,10 +442,39 @@
             const boardWidth = boardRect.width;
             const boardHeight = boardRect.height;
             
+            // ボスレベルの判定（5の倍数レベル）
+            gameState.bossLevel = gameState.level % 5 === 0;
+            
             // レベルに応じて敵とオブジェクトを配置
             gameState.enemies = [];
             gameState.crystals = [];
             gameState.portals = [];
+            gameState.boss = null;
+            gameState.bossProjectiles = [];
+            
+            if (gameState.bossLevel) {
+                // ボスレベルの設定
+                gameState.bossHealth = 100 + (gameState.level / 5 - 1) * 50;
+                gameState.maxBossHealth = gameState.bossHealth;
+                gameState.totalCrystals = 3; // ボスレベルはクリスタル少な目
+                
+                // ボスを配置
+                gameState.boss = {
+                    x: boardWidth * 0.5,
+                    y: boardHeight * 0.3,
+                    vx: (Math.random() - 0.5) * (boardWidth * 0.001),
+                    vy: (Math.random() - 0.5) * (boardHeight * 0.001),
+                    baseSpeed: boardWidth * 0.0005, // ボスの基本速度
+                    lastShot: 0,
+                    shotInterval: 2000 // 基本発射間隔（ミリ秒）
+                };
+                
+                document.getElementById('bossHealthContainer').style.display = 'block';
+                showMessage(`ボス出現！クロノス・マスターを倒せ！`);
+            } else {
+                gameState.totalCrystals = 5;
+                document.getElementById('bossHealthContainer').style.display = 'none';
+            }
             
             // 時間クリスタルの配置（レスポンシブ対応）
             for (let i = 0; i < gameState.totalCrystals; i++) {
@@ -350,20 +485,24 @@
                 });
             }
             
-            // 敵の配置（レベルに応じて増加）
-            const enemyCount = Math.min(gameState.level + 1, 6);
-            for (let i = 0; i < enemyCount; i++) {
-                gameState.enemies.push({
-                    x: Math.random() * (boardWidth * 0.9) + (boardWidth * 0.05),
-                    y: Math.random() * (boardHeight * 0.85) + (boardHeight * 0.05),
-                    vx: (Math.random() - 0.5) * (boardWidth * 0.004),
-                    vy: (Math.random() - 0.5) * (boardHeight * 0.006),
-                    id: i
-                });
+            // 通常敵の配置（ボスレベルでない場合）
+            if (!gameState.bossLevel) {
+                const enemyCount = Math.min(gameState.level + 1, 6);
+                const baseSpeed = boardWidth * 0.002; // 基本速度を定義
+                for (let i = 0; i < enemyCount; i++) {
+                    gameState.enemies.push({
+                        x: Math.random() * (boardWidth * 0.9) + (boardWidth * 0.05),
+                        y: Math.random() * (boardHeight * 0.85) + (boardHeight * 0.05),
+                        vx: (Math.random() - 0.5) * baseSpeed,
+                        vy: (Math.random() - 0.5) * baseSpeed,
+                        baseSpeed: baseSpeed, // 基本速度を保存
+                        id: i
+                    });
+                }
             }
             
             // ポータルの配置
-            if (gameState.level >= 2) {
+            if (gameState.level >= 2 && !gameState.bossLevel) {
                 gameState.portals.push(
                     { x: boardWidth * 0.15, y: boardHeight * 0.75, id: 0, pair: 1 },
                     { x: boardWidth * 0.75, y: boardHeight * 0.2, id: 1, pair: 0 }
@@ -399,13 +538,31 @@
                 board.appendChild(crystalEl);
             });
             
-            // 敵を描画
+            // 通常敵を描画
             gameState.enemies.forEach(enemy => {
                 const enemyEl = document.createElement('div');
                 enemyEl.className = 'sphere enemy';
                 enemyEl.style.left = enemy.x + 'px';
                 enemyEl.style.top = enemy.y + 'px';
                 board.appendChild(enemyEl);
+            });
+            
+            // ボスを描画
+            if (gameState.boss) {
+                const bossEl = document.createElement('div');
+                bossEl.className = 'sphere boss';
+                bossEl.style.left = gameState.boss.x + 'px';
+                bossEl.style.top = gameState.boss.y + 'px';
+                board.appendChild(bossEl);
+            }
+            
+            // ボスの弾を描画
+            gameState.bossProjectiles.forEach(projectile => {
+                const projectileEl = document.createElement('div');
+                projectileEl.className = 'sphere boss-projectile';
+                projectileEl.style.left = projectile.x + 'px';
+                projectileEl.style.top = projectile.y + 'px';
+                board.appendChild(projectileEl);
             });
             
             // ポータルを描画
@@ -416,6 +573,12 @@
                 portalEl.style.top = portal.y + 'px';
                 board.appendChild(portalEl);
             });
+            
+            // ボスヘルスバー更新
+            if (gameState.boss) {
+                const healthPercentage = (gameState.bossHealth / gameState.maxBossHealth) * 100;
+                document.getElementById('bossHealthBar').style.width = healthPercentage + '%';
+            }
         }
 
         function movePlayer(direction) {
@@ -462,20 +625,40 @@
         }
 
         function checkCollisions() {
+            const sphereSize = 30; // 基本的な当たり判定サイズ
+            
             // 時間クリスタルとの衝突
             gameState.crystals.forEach((crystal, index) => {
                 const dx = gameState.player.x - crystal.x;
                 const dy = gameState.player.y - crystal.y;
-                if (Math.sqrt(dx * dx + dy * dy) < 30) {
+                if (Math.sqrt(dx * dx + dy * dy) < sphereSize) {
                     collectCrystal(crystal.id);
                 }
             });
             
-            // 敵との衝突
+            // 通常敵との衝突
             gameState.enemies.forEach(enemy => {
                 const dx = gameState.player.x - enemy.x;
                 const dy = gameState.player.y - enemy.y;
-                if (Math.sqrt(dx * dx + dy * dy) < 35) {
+                if (Math.sqrt(dx * dx + dy * dy) < sphereSize + 5) {
+                    gameOver();
+                }
+            });
+            
+            // ボスとの衝突
+            if (gameState.boss) {
+                const dx = gameState.player.x - gameState.boss.x;
+                const dy = gameState.player.y - gameState.boss.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 45) { // ボスは大きいので当たり判定も大きく
+                    gameOver();
+                }
+            }
+            
+            // ボスの弾との衝突
+            gameState.bossProjectiles.forEach((projectile, index) => {
+                const dx = gameState.player.x - projectile.x;
+                const dy = gameState.player.y - projectile.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 25) {
                     gameOver();
                 }
             });
@@ -497,13 +680,51 @@
             gameState.crystals = gameState.crystals.filter(c => c.id !== crystalId);
             gameState.collectedCrystals++;
             
+            // ボス戦中の場合、ボスにダメージ
+            if (gameState.boss) {
+                gameState.bossHealth -= 20;
+                if (gameState.bossHealth <= 0) {
+                    defeatBoss();
+                } else {
+                    showMessage(`ボスにダメージ！残りHP: ${gameState.bossHealth}`);
+                }
+            }
+            
             if (gameState.collectedCrystals >= gameState.totalCrystals) {
-                levelUp();
+                if (gameState.boss && gameState.bossHealth > 0) {
+                    // ボスがまだ生きている場合、新しいクリスタルを生成
+                    spawnNewCrystal();
+                } else {
+                    levelUp();
+                }
             } else {
                 showMessage(`時間クリスタル獲得！ 残り${gameState.totalCrystals - gameState.collectedCrystals}個`);
             }
             
             updateUI();
+        }
+        
+        function spawnNewCrystal() {
+            const board = document.getElementById('gameBoard');
+            const boardRect = board.getBoundingClientRect();
+            
+            gameState.crystals.push({
+                x: Math.random() * (boardRect.width * 0.9) + (boardRect.width * 0.05),
+                y: Math.random() * (boardRect.height * 0.85) + (boardRect.height * 0.05),
+                id: Date.now() // ユニークなID
+            });
+            gameState.totalCrystals++;
+        }
+        
+        function defeatBoss() {
+            gameState.boss = null;
+            gameState.bossProjectiles = [];
+            document.getElementById('bossHealthContainer').style.display = 'none';
+            showMessage('🎉 ボス撃破！おめでとう！');
+            
+            setTimeout(() => {
+                levelUp();
+            }, 2000);
         }
 
         function levelUp() {
@@ -576,9 +797,10 @@
                 const maxX = boardRect.width - 40;
                 const maxY = boardRect.height - 40;
                 
+                // 通常敵の更新
                 gameState.enemies.forEach(enemy => {
-                    enemy.x += enemy.vx;
-                    enemy.y += enemy.vy;
+                    enemy.x += enemy.vx * gameState.gameSpeed;
+                    enemy.y += enemy.vy * gameState.gameSpeed;
                     
                     // 壁での反射（レスポンシブ対応）
                     if (enemy.x <= 0 || enemy.x >= maxX) {
@@ -590,7 +812,76 @@
                         enemy.y = Math.max(0, Math.min(maxY, enemy.y));
                     }
                 });
+                
+                // ボスの更新
+                if (gameState.boss) {
+                    updateBoss(boardRect);
+                }
+                
+                // ボスの弾の更新
+                updateBossProjectiles(boardRect);
             }
+        }
+        
+        function updateBoss(boardRect) {
+            const boss = gameState.boss;
+            const maxX = boardRect.width - 60;
+            const maxY = boardRect.height - 60;
+            
+            // ボスの移動（速度調整適用）
+            boss.x += boss.vx * gameState.gameSpeed;
+            boss.y += boss.vy * gameState.gameSpeed;
+            
+            // 壁での反射
+            if (boss.x <= 0 || boss.x >= maxX) {
+                boss.vx *= -1;
+                boss.x = Math.max(0, Math.min(maxX, boss.x));
+            }
+            if (boss.y <= 0 || boss.y >= maxY) {
+                boss.vy *= -1;
+                boss.y = Math.max(0, Math.min(maxY, boss.y));
+            }
+            
+            // 弾の発射（速度調整でインターバルも変更）
+            const currentTime = Date.now();
+            const adjustedInterval = boss.shotInterval / gameState.gameSpeed;
+            if (currentTime - boss.lastShot > adjustedInterval) {
+                shootBossProjectile();
+                boss.lastShot = currentTime;
+            }
+        }
+        
+        function shootBossProjectile() {
+            const boss = gameState.boss;
+            const player = gameState.player;
+            
+            // プレイヤーに向かって弾を発射
+            const dx = player.x - boss.x;
+            const dy = player.y - boss.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            const baseSpeed = 2; // 基本弾速
+            const vx = (dx / distance) * baseSpeed;
+            const vy = (dy / distance) * baseSpeed;
+            
+            gameState.bossProjectiles.push({
+                x: boss.x + 30, // ボスの中心から発射
+                y: boss.y + 30,
+                vx: vx,
+                vy: vy
+            });
+        }
+        
+        function updateBossProjectiles(boardRect) {
+            gameState.bossProjectiles = gameState.bossProjectiles.filter(projectile => {
+                // 弾の移動（速度調整適用）
+                projectile.x += projectile.vx * gameState.gameSpeed;
+                projectile.y += projectile.vy * gameState.gameSpeed;
+                
+                // 画面外に出た弾は削除
+                return projectile.x >= -20 && projectile.x <= boardRect.width + 20 &&
+                       projectile.y >= -20 && projectile.y <= boardRect.height + 20;
+            });
         }
 
         function gameOver() {
@@ -606,6 +897,8 @@
                 enemies: [],
                 crystals: [],
                 portals: [],
+                boss: null,
+                bossProjectiles: [],
                 collectedCrystals: 0,
                 totalCrystals: 5,
                 rewinds: 3,
@@ -613,10 +906,17 @@
                 level: 1,
                 frozen: false,
                 gameHistory: [],
-                trails: []
+                trails: [],
+                gameSpeed: 1.0,
+                bossLevel: false,
+                bossHealth: 100,
+                maxBossHealth: 100
             };
             
             document.getElementById('freezeBtn').disabled = false;
+            document.getElementById('bossHealthContainer').style.display = 'none';
+            document.getElementById('speedSlider').value = 1.0;
+            document.getElementById('speedDisplay').textContent = 'x1.0';
             initGame();
             showMessage('ゲームリセット！新しい冒険の始まりです');
         }
