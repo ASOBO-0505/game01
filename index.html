@@ -7,21 +7,25 @@
     <style>
         body {
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
             font-family: 'Arial', sans-serif;
             color: white;
             min-height: 100vh;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
         
         .game-container {
-            max-width: 800px;
+            max-width: min(800px, 100vw - 20px);
             margin: 0 auto;
             text-align: center;
         }
         
         h1 {
-            font-size: 2.5em;
+            font-size: clamp(1.8em, 5vw, 2.5em);
             margin-bottom: 10px;
             background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
             -webkit-background-clip: text;
@@ -30,8 +34,8 @@
         }
         
         .game-board {
-            width: 600px;
-            height: 400px;
+            width: min(600px, 95vw);
+            height: min(400px, 60vh);
             margin: 20px auto;
             border: 3px solid #4ecdc4;
             border-radius: 15px;
@@ -39,16 +43,18 @@
             background: rgba(0, 0, 0, 0.3);
             overflow: hidden;
             box-shadow: 0 0 30px rgba(78, 205, 196, 0.3);
+            touch-action: none;
         }
         
         .sphere {
-            width: 40px;
-            height: 40px;
+            width: clamp(30px, 6vw, 40px);
+            height: clamp(30px, 6vw, 40px);
             border-radius: 50%;
             position: absolute;
             transition: all 0.3s ease;
             cursor: pointer;
             box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            touch-action: none;
         }
         
         .sphere.player {
@@ -104,15 +110,18 @@
         }
         
         button {
-            padding: 12px 24px;
+            padding: clamp(8px, 2.5vw, 12px) clamp(16px, 4vw, 24px);
             border: none;
             border-radius: 25px;
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
-            font-size: 16px;
+            font-size: clamp(14px, 3.5vw, 16px);
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            touch-action: manipulation;
+            min-height: 44px;
+            min-width: 44px;
         }
         
         button:hover {
@@ -131,15 +140,18 @@
             justify-content: space-around;
             margin: 20px 0;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 10px;
         }
         
         .info-item {
             background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
+            padding: clamp(10px, 3vw, 15px);
             border-radius: 10px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: clamp(12px, 3vw, 14px);
+            flex: 1;
+            min-width: 100px;
         }
         
         .message {
@@ -154,11 +166,76 @@
         .rules {
             text-align: left;
             background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
+            padding: clamp(15px, 4vw, 20px);
             border-radius: 15px;
             margin: 30px 0;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: clamp(12px, 3.5vw, 14px);
+        }
+        
+        .touch-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 10px;
+            width: min(200px, 40vw);
+            height: min(200px, 40vw);
+            margin: 20px auto;
+        }
+        
+        .touch-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            border: 2px solid white;
+            border-radius: 15px;
+            color: white;
+            font-size: clamp(16px, 4vw, 24px);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .touch-btn:active {
+            transform: scale(0.95);
+            background: linear-gradient(45deg, #ff5252, #ff7979);
+        }
+        
+        .touch-btn.up { grid-column: 2; grid-row: 1; }
+        .touch-btn.left { grid-column: 1; grid-row: 2; }
+        .touch-btn.right { grid-column: 3; grid-row: 2; }
+        .touch-btn.down { grid-column: 2; grid-row: 3; }
+        
+        @media (max-width: 768px) {
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+            
+            .mobile-controls {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                align-items: center;
+            }
+            
+            .action-buttons {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .rules {
+                max-height: 300px;
+                overflow-y: auto;
+            }
         }
         
         .rules h3 {
@@ -184,13 +261,20 @@
         <div class="game-board" id="gameBoard"></div>
         
         <div class="control-panel">
-            <button onclick="movePlayer('up')">↑</button>
-            <button onclick="movePlayer('down')">↓</button>
-            <button onclick="movePlayer('left')">←</button>
-            <button onclick="movePlayer('right')">→</button>
-            <button onclick="rewindTime()" id="rewindBtn">⏪ 時間巻き戻し</button>
-            <button onclick="freezeTime()" id="freezeBtn">⏸️ 時間停止</button>
-            <button onclick="resetGame()">🔄 リセット</button>
+            <div class="mobile-controls">
+                <div class="touch-controls">
+                    <div class="touch-btn up" ontouchstart="event.preventDefault(); movePlayer('up')" onclick="movePlayer('up')">↑</div>
+                    <div class="touch-btn left" ontouchstart="event.preventDefault(); movePlayer('left')" onclick="movePlayer('left')">←</div>
+                    <div class="touch-btn right" ontouchstart="event.preventDefault(); movePlayer('right')" onclick="movePlayer('right')">→</div>
+                    <div class="touch-btn down" ontouchstart="event.preventDefault(); movePlayer('down')" onclick="movePlayer('down')">↓</div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button ontouchstart="event.preventDefault();" onclick="rewindTime()" id="rewindBtn">⏪ 巻戻</button>
+                    <button ontouchstart="event.preventDefault();" onclick="freezeTime()" id="freezeBtn">⏸️ 停止</button>
+                    <button ontouchstart="event.preventDefault();" onclick="resetGame()">🔄 リセット</button>
+                </div>
+            </div>
         </div>
         
         <div class="info-panel">
@@ -247,16 +331,21 @@
             const board = document.getElementById('gameBoard');
             board.innerHTML = '';
             
+            // ボードサイズを取得してゲーム領域を調整
+            const boardRect = board.getBoundingClientRect();
+            const boardWidth = boardRect.width;
+            const boardHeight = boardRect.height;
+            
             // レベルに応じて敵とオブジェクトを配置
             gameState.enemies = [];
             gameState.crystals = [];
             gameState.portals = [];
             
-            // 時間クリスタルの配置
+            // 時間クリスタルの配置（レスポンシブ対応）
             for (let i = 0; i < gameState.totalCrystals; i++) {
                 gameState.crystals.push({
-                    x: Math.random() * 540 + 20,
-                    y: Math.random() * 340 + 20,
+                    x: Math.random() * (boardWidth * 0.9) + (boardWidth * 0.05),
+                    y: Math.random() * (boardHeight * 0.85) + (boardHeight * 0.05),
                     id: i
                 });
             }
@@ -265,10 +354,10 @@
             const enemyCount = Math.min(gameState.level + 1, 6);
             for (let i = 0; i < enemyCount; i++) {
                 gameState.enemies.push({
-                    x: Math.random() * 540 + 20,
-                    y: Math.random() * 340 + 20,
-                    vx: (Math.random() - 0.5) * 2,
-                    vy: (Math.random() - 0.5) * 2,
+                    x: Math.random() * (boardWidth * 0.9) + (boardWidth * 0.05),
+                    y: Math.random() * (boardHeight * 0.85) + (boardHeight * 0.05),
+                    vx: (Math.random() - 0.5) * (boardWidth * 0.004),
+                    vy: (Math.random() - 0.5) * (boardHeight * 0.006),
                     id: i
                 });
             }
@@ -276,8 +365,8 @@
             // ポータルの配置
             if (gameState.level >= 2) {
                 gameState.portals.push(
-                    { x: 100, y: 300, id: 0, pair: 1 },
-                    { x: 480, y: 80, id: 1, pair: 0 }
+                    { x: boardWidth * 0.15, y: boardHeight * 0.75, id: 0, pair: 1 },
+                    { x: boardWidth * 0.75, y: boardHeight * 0.2, id: 1, pair: 0 }
                 );
             }
             
@@ -330,14 +419,19 @@
         }
 
         function movePlayer(direction) {
-            const speed = 25;
+            const board = document.getElementById('gameBoard');
+            const boardRect = board.getBoundingClientRect();
+            const speed = Math.min(25, boardRect.width * 0.04); // レスポンシブ対応
             const oldPos = { ...gameState.player };
+            
+            const maxX = boardRect.width - parseFloat(getComputedStyle(board.querySelector('.sphere')).width);
+            const maxY = boardRect.height - parseFloat(getComputedStyle(board.querySelector('.sphere')).height);
             
             switch (direction) {
                 case 'up': gameState.player.y = Math.max(0, gameState.player.y - speed); break;
-                case 'down': gameState.player.y = Math.min(360, gameState.player.y + speed); break;
+                case 'down': gameState.player.y = Math.min(maxY, gameState.player.y + speed); break;
                 case 'left': gameState.player.x = Math.max(0, gameState.player.x - speed); break;
-                case 'right': gameState.player.x = Math.min(560, gameState.player.x + speed); break;
+                case 'right': gameState.player.x = Math.min(maxX, gameState.player.x + speed); break;
             }
             
             // トレイルエフェクト
@@ -477,18 +571,23 @@
 
         function updateEnemies() {
             if (!gameState.frozen) {
+                const board = document.getElementById('gameBoard');
+                const boardRect = board.getBoundingClientRect();
+                const maxX = boardRect.width - 40;
+                const maxY = boardRect.height - 40;
+                
                 gameState.enemies.forEach(enemy => {
                     enemy.x += enemy.vx;
                     enemy.y += enemy.vy;
                     
-                    // 壁での反射
-                    if (enemy.x <= 0 || enemy.x >= 560) {
+                    // 壁での反射（レスポンシブ対応）
+                    if (enemy.x <= 0 || enemy.x >= maxX) {
                         enemy.vx *= -1;
-                        enemy.x = Math.max(0, Math.min(560, enemy.x));
+                        enemy.x = Math.max(0, Math.min(maxX, enemy.x));
                     }
-                    if (enemy.y <= 0 || enemy.y >= 360) {
+                    if (enemy.y <= 0 || enemy.y >= maxY) {
                         enemy.vy *= -1;
-                        enemy.y = Math.max(0, Math.min(360, enemy.y));
+                        enemy.y = Math.max(0, Math.min(maxY, enemy.y));
                     }
                 });
             }
@@ -543,6 +642,51 @@
             renderGame();
         }, 100);
 
+        // タッチ操作対応
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        
+        document.getElementById('gameBoard').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+        
+        document.getElementById('gameBoard').addEventListener('touchend', (e) => {
+            e.preventDefault();
+            touchEndX = e.changedTouches[0].clientX;
+            touchEndY = e.changedTouches[0].clientY;
+            handleSwipe();
+        });
+        
+        function handleSwipe() {
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            const minSwipeDistance = 30;
+            
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                // 横方向のスワイプ
+                if (Math.abs(deltaX) > minSwipeDistance) {
+                    if (deltaX > 0) {
+                        movePlayer('right');
+                    } else {
+                        movePlayer('left');
+                    }
+                }
+            } else {
+                // 縦方向のスワイプ
+                if (Math.abs(deltaY) > minSwipeDistance) {
+                    if (deltaY > 0) {
+                        movePlayer('down');
+                    } else {
+                        movePlayer('up');
+                    }
+                }
+            }
+        }
+        
         // キーボード操作
         document.addEventListener('keydown', (e) => {
             switch(e.key) {
